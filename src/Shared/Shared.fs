@@ -9,6 +9,8 @@ type FileSystemEntry =
 and FileInfo = { Name: string; ContentReadable: bool; }
 and DirectoryInfo = { Name: string; }
 
+type UnixPath = string
+
 type DirectoryListResponse =
     | InvalidPath
     | DirResult of FileSystemEntry []

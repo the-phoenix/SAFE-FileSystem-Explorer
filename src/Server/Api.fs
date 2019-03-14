@@ -17,7 +17,6 @@ let getInitial next (ctx: HttpContext) = task {
 }
 
 let getDirectoryList dirPath next (ctx:HttpContext) = task {
-    printf "Inputed Path %s" dirPath
     let! directoryContent = getEntriesInDirectory(dirPath)
 
     match directoryContent with

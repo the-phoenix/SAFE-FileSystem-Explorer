@@ -12,11 +12,9 @@ open Thoth.Json
 
 open Shared
 
-
 open Fulma
 open System.IO
 
-type UnixPath = string
 type ServerState = Idle | Loading | ServerError of string
 
 type Model = {
@@ -24,11 +22,9 @@ type Model = {
     CurrentPath: UnixPath
     ValidationError : string option
     ServerState : ServerState
-    DirectoryContent : FileSystemEntry array
+    DirectoryContent : FileSystemEntry array option
 }
 
-// The Msg type defines what events/actions can occur while the application is running
-// the state of the application changes *only* in reaction to these events
 type Msg =
     | Increment
     | Decrement
@@ -47,14 +43,13 @@ let getResponse path = promise {
     return resp
 }
 
-// defines the initial state and initial command (= side-effect) of the application
 let init () : Model * Cmd<Msg> =
     let initialModel = {
         RootDirectory = "";
         CurrentPath = "";
         ServerState = Idle;
         ValidationError = None;
-        DirectoryContent = [||];
+        DirectoryContent = None;
     }
 
     let loadCountCmd =
@@ -93,11 +88,14 @@ let update (msg : Msg) (model : Model) : Model * Cmd<Msg> =
             CurrentPath = changed
         }, Cmd.none
     | { ValidationError = None; RootDirectory = path }, GetDirContent ->
-        { model with ServerState = Loading }, Cmd.ofPromise getResponse path GotDirContent ErrorMsg
+        { model with
+            ServerState = Loading
+            DirectoryContent = None
+        }, Cmd.ofPromise getResponse path GotDirContent ErrorMsg
     | _, GotDirContent dirContent ->
         { model with
             ValidationError = None
-            DirectoryContent = dirContent
+            DirectoryContent = Some dirContent
             CurrentPath = model.RootDirectory
             ServerState = Idle
         }, Cmd.none
@@ -171,9 +169,21 @@ let view (model : Model) (dispatch : Msg -> unit) =
                                         [ str "Clear Result" ] ] ] ]
 
                     ]
-                yield  Content.content [ Content.CustomClass "dirview-container"] [
-                    viewDirectoryContent model.DirectoryContent
-                ]
+                match model with
+                    | { DirectoryContent = None; ServerState = (Idle | Loading) } -> ()
+                    | { ServerState = ServerError error } ->
+                        yield
+                            Field.div [] [
+                                Tag.list [ Tag.List.HasAddons; Tag.List.IsCentered ] [
+                                    Tag.tag [ Tag.Color Color.IsDanger; Tag.Size IsMedium ] [
+                                        str error
+                                    ]
+                                ]
+                            ]
+                    | { DirectoryContent = Some content; ServerState = Idle } ->
+                        yield  Content.content [ Content.CustomClass "dirview-container"] [
+                            viewDirectoryContent content
+                        ]
           ]
 
           Footer.footer [ ]
