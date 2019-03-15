@@ -5,7 +5,6 @@ open System.IO
 open FSharp.Control.Tasks.V2
 
 open Shared
-open System
 
 let getInitCounter() : Task<Counter> = task { return { Value = 42 } }
 
@@ -25,23 +24,33 @@ let (|IsTextFile|_|) filePath =
         -> Some()
     | _ -> None
 
-let private getFSItemInformationsInsideDirectory path =
-    path
-    |> Directory.GetFileSystemEntries
-    |> Seq.sort
-    |> Seq.toArray
-    |> Array.map(fun path ->
-        let attr = File.GetAttributes path
+let ArrayConcat arr1 arr2 =
+    Array.concat [arr1; arr2]
 
-        if attr.HasFlag(FileAttributes.Directory) then
-            Directory { Name = path |> Path.GetFileName; FullPath = path }
-        else
-            File {
-                Name = path |> Path.GetFileName
-                ContentReadable = match path with | IsTextFile -> true | _ -> false
-                FullPath = path
-            }
-    )
+let private getFSItemInformationsInsideDirectory path =
+    let preFSEntries = [|
+        Directory { Name = "."; FullPath = path };
+        Directory { Name = ".."; FullPath = Directory.GetParent(path).FullName };
+    |]
+
+    path
+        |> Directory.GetFileSystemEntries
+        |> Seq.sort
+        |> Seq.toArray
+        |> Array.map(fun path ->
+            let attr = File.GetAttributes path
+
+            if attr.HasFlag(FileAttributes.Directory) then
+                Directory { Name = path |> Path.GetFileName; FullPath = path }
+            else
+                File {
+                    Name = path |> Path.GetFileName
+                    ContentReadable = match path with | IsTextFile -> true | _ -> false
+                    FullPath = path
+                }
+        )
+        |> ArrayConcat preFSEntries
+
 
 let getEntriesInDirectory path : Task<DirectoryListResponse> = task {
     let contents = if Directory.Exists path then DirResult ( getFSItemInformationsInsideDirectory path ) else InvalidPath

@@ -95,8 +95,8 @@ let update (msg : Msg) (model : Model) : Model * Cmd<Msg> =
     | _, GotDirContent dirContent ->
         { model with
             ValidationError = None
-            DirectoryContent = Some dirContent
-            CurrentPath = model.RootDirectory
+            DirectoryContent = Some dirContent.[1..]
+            CurrentPath = match dirContent.[0] with | Directory dir -> dir.FullPath | _ -> ""
             ServerState = Idle
         }, Cmd.none
     | _, ErrorMsg e -> { model with ServerState = ServerError e.Message }, Cmd.none

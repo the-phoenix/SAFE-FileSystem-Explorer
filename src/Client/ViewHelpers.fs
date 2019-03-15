@@ -58,7 +58,7 @@ let showFSEntry onClick fsEntry  =
 let viewDirectoryContent (dirContent: FileSystemEntry array) isRoot onClick =
     Fa.ul [] (
         dirContent
-        |> Array.filter (function | Directory { Name = ".." } -> false | _ -> true )
+        |> Array.filter (fun entry -> match entry, isRoot with | Directory { Name = ".." }, true -> false | _ -> true )
         |> Array.map (showFSEntry onClick)
     )
 
