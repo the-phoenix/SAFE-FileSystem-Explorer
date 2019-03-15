@@ -191,10 +191,16 @@ let view (model : Model) (dispatch : Msg -> unit) =
                             ]
                     | { DirectoryContent = Some content } ->
                         yield  Content.content [ Content.CustomClass "dirview-container"] [
-                            viewDirectoryContent content ( model.RootDirectory = model.CurrentPath) onEntryClicked
+                            Columns.columns []
+                                [ Column.column [ Column.Width (Screen.WideScreen, Column.Is6)] [
+                                    viewDirectoryContent content ( model.RootDirectory = model.CurrentPath) onEntryClicked ]
+                                  Column.column [] [
+                                    viewFileContent
+                                  ]
+                                ]
                         ]
           ]
 
           Footer.footer [ ]
-                [ Content.content [ Content.Modifiers [ Modifier.TextAlignment (Screen.All, TextAlignment.Centered) ] ]
-                    [ safeComponents ] ] ]
+            [ Content.content [ Content.Modifiers [ Modifier.TextAlignment (Screen.All, TextAlignment.Centered) ] ]
+                [ safeComponents ] ] ]

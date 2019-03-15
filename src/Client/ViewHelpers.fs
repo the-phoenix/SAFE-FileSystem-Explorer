@@ -56,12 +56,24 @@ let showFSEntry onClick fsEntry  =
     )
 
 let viewDirectoryContent (dirContent: FileSystemEntry array) isRoot onClick =
-    Field.div [] [
+    Field.div [ Field.CustomClass "dirview"] [
         Fa.ul [] (
             dirContent
             |> Array.filter (function | Directory { Name = ".." } -> false | _ -> true )
             |> Array.map (showFSEntry onClick)
         )
+    ]
+
+let viewFileContent =
+    Field.div [ Field.CustomClass "fileview"] [
+        Message.message [ Message.Size IsSmall ] [
+            Message.header [] [
+                str "Hey"
+            ]
+            Message.body [] [
+                str "Hey Again"
+            ]
+        ]
     ]
 module KeyCode =
     let enter = 13.
