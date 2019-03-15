@@ -5,9 +5,11 @@ module ViewHelpers
 open Fable.Helpers.React
 open Fable.Helpers.React.Props
 open Fable.Import
+open Fable.FontAwesome
 
 open Fulma
 open Shared
+open Fulma
 
 let safeComponents =
     let components =
@@ -34,17 +36,40 @@ let btn txt onClick =
           Button.OnClick onClick ]
         [ str txt ]
 
-let showFSEntry fsEntry =
-    li [] [
-        str (match fsEntry with
-            | File file -> file.Name
-            | Directory dir -> dir.Name
+let (|IsClickable|_|) fsEntry =
+    match fsEntry with
+    | Directory _ -> Some()
+    | File file -> if file.ContentReadable then Some() else None
+
+let showFSEntry onClick fsEntry  =
+    li [
+        Class (match fsEntry with | IsClickable -> "clickable" | _ -> "")
+        OnClick (fun _ -> match fsEntry with | IsClickable -> onClick fsEntry | _ -> () )
+    ] (
+        match fsEntry with
+        | File file -> [
+            Fa.i [ Fa.Solid.FileAlt; Fa.IsLi ] []
+            str file.Name]
+        | Directory dir -> [
+            Fa.i [ Fa.Solid.Folder; Fa.IsLi ] []
+            str dir.Name]
+    )
+
+let viewDirectoryContent (dirContent: FileSystemEntry array) isRoot onClick =
+    Field.div [] [
+        Fa.ul [] (
+            dirContent
+            |> Array.filter (function | Directory { Name = ".." } -> false | _ -> true )
+            |> Array.map (showFSEntry onClick)
         )
     ]
+module KeyCode =
+    let enter = 13.
+    let upArrow = 38.
+    let downArrow =  40.
 
-let viewDirectoryContent (dirContent: FileSystemEntry array) =
-    Browser.console.log("dirContent!", dirContent)
-    Field.div [] [
-        // ul [] (dirContent |> Array.map (function | File f -> str f.Name | Directory f -> str f.Name))
-        ul [] (dirContent |> Array.map (showFSEntry))
-    ]
+let onKeyDown keyCode action =
+    OnKeyDown (fun (ev:Fable.Import.React.KeyboardEvent) ->
+        if ev.keyCode = keyCode then
+            ev.preventDefault()
+            action ev)

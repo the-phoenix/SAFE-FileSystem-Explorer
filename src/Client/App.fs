@@ -13,7 +13,6 @@ open Thoth.Json
 open Shared
 
 open Fulma
-open System.IO
 
 type ServerState = Idle | Loading | ServerError of string
 
@@ -31,7 +30,7 @@ type Msg =
     | InitialCountLoaded of Result<Counter, exn>
     | RootDirectoryChanged of UnixPath
     | CurrentPathChanged of UnixPath
-    | GetDirContent
+    | GetDirContent of UnixPath
     | GotDirContent of FileSystemEntry array
     | ErrorMsg of exn
 
@@ -79,6 +78,7 @@ let update (msg : Msg) (model : Model) : Model * Cmd<Msg> =
     | _, RootDirectoryChanged changed ->
         { model with
             RootDirectory = changed
+            DirectoryContent = None
             ValidationError =
                 if Validation.validatePath changed || changed.Trim() = "" then None
                 else Some "Invalid directory path."
@@ -87,7 +87,7 @@ let update (msg : Msg) (model : Model) : Model * Cmd<Msg> =
         { model with
             CurrentPath = changed
         }, Cmd.none
-    | { ValidationError = None; RootDirectory = path }, GetDirContent ->
+    | { ValidationError = None }, GetDirContent path ->
         { model with
             ServerState = Loading
             DirectoryContent = None
@@ -103,6 +103,14 @@ let update (msg : Msg) (model : Model) : Model * Cmd<Msg> =
     | _ -> model, Cmd.none
 
 let view (model : Model) (dispatch : Msg -> unit) =
+    let onEntryClicked (fsEntry: FileSystemEntry) =
+        match fsEntry with
+        | Directory dir ->
+            dispatch (CurrentPathChanged dir.FullPath)
+            dispatch (GetDirContent dir.FullPath)
+        | File file -> ()
+        // ignore
+
     div []
         [ Navbar.navbar [ Navbar.Color IsPrimary ]
             [ Navbar.Item.div [ ]
@@ -120,6 +128,7 @@ let view (model : Model) (dispatch : Msg -> unit) =
                             Input.Color (if model.ValidationError.IsSome then Color.IsDanger else Color.IsSuccess)
                             Input.Props [
                                 OnChange (fun ev -> !!ev.target?value |> RootDirectoryChanged |> dispatch )
+                                onKeyDown KeyCode.enter (fun _ -> model.RootDirectory |> GetDirContent |> dispatch )
                             ]
                         ]
                         Icon.icon [ Icon.Size IsSmall; Icon.IsLeft ] [
@@ -156,7 +165,7 @@ let view (model : Model) (dispatch : Msg -> unit) =
                                     Button.button
                                         [ Button.IsFullWidth
                                           Button.Color IsPrimary
-                                          Button.OnClick (fun _ -> dispatch GetDirContent)
+                                          Button.OnClick (fun _ -> model.RootDirectory |> GetDirContent |> dispatch)
                                           Button.Disabled (model.ValidationError.IsSome)
                                           Button.IsLoading (model.ServerState = ServerState.Loading) ]
                                         [ str "Submit" ] ]
@@ -180,9 +189,9 @@ let view (model : Model) (dispatch : Msg -> unit) =
                                     ]
                                 ]
                             ]
-                    | { DirectoryContent = Some content; ServerState = Idle } ->
+                    | { DirectoryContent = Some content } ->
                         yield  Content.content [ Content.CustomClass "dirview-container"] [
-                            viewDirectoryContent content
+                            viewDirectoryContent content ( model.RootDirectory = model.CurrentPath) onEntryClicked
                         ]
           ]
 

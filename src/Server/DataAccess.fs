@@ -34,11 +34,12 @@ let private getFSItemInformationsInsideDirectory path =
         let attr = File.GetAttributes path
 
         if attr.HasFlag(FileAttributes.Directory) then
-            Directory { Name = path |> Path.GetFileName }
+            Directory { Name = path |> Path.GetFileName; FullPath = path }
         else
             File {
-                Name = path |> Path.GetFileName;
-                ContentReadable = match path with | IsTextFile -> true | _ -> false;
+                Name = path |> Path.GetFileName
+                ContentReadable = match path with | IsTextFile -> true | _ -> false
+                FullPath = path
             }
     )
 
@@ -47,3 +48,5 @@ let getEntriesInDirectory path : Task<DirectoryListResponse> = task {
 
     return contents
 }
+
+let a = System.IO.Path.Combine("one", "two")
