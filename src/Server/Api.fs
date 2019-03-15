@@ -9,13 +9,6 @@ open Shared
 open Saturn
 open Giraffe
 open Microsoft.AspNetCore.Http
-open Saturn.ControllerHelpers
-// open Shared
-
-let getInitial next (ctx: HttpContext) = task {
-    let! counter = getInitCounter()
-    return! json counter next ctx
-}
 
 let getDirectoryList dirPath next (ctx:HttpContext) = task {
     let! directoryContent = getEntriesInDirectory(dirPath)
@@ -36,7 +29,6 @@ let getFileContent filePath next (ctx:HttpContext) = task {
 }
 
 let webApp = router {
-    get "/api/init" getInitial
     getf "/api/dir/%s" getDirectoryList
     getf "/api/file/%s" getFileContent
 }

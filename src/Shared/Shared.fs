@@ -2,7 +2,6 @@ namespace Shared
 open System.IO
 
 type UnixPath = string
-type Counter = { Value : int }
 type FileSystemEntry =
     | File of FileInfo
     | Directory of DirectoryInfo

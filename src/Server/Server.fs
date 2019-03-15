@@ -4,12 +4,6 @@ open Microsoft.Extensions.DependencyInjection
 open Giraffe
 open Saturn
 open Api
-open Shared
-open DataAccess
-
-let a = getEntriesInDirectory "/Users/phoenix"
-
-(printfn "Hey, %A") a
 
 let tryGetEnv = System.Environment.GetEnvironmentVariable >> function null | "" -> None | x -> Some x
 

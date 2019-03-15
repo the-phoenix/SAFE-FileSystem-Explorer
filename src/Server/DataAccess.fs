@@ -6,8 +6,6 @@ open FSharp.Control.Tasks.V2
 
 open Shared
 
-let getInitCounter() : Task<Counter> = task { return { Value = 42 } }
-
 let (|EndWithExtension|_|) (fileExt: string) (filePath: string) =
     let extracted = filePath |> Path.GetExtension
 

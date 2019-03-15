@@ -27,19 +27,14 @@ type Model = {
 }
 
 type Msg =
-    | Increment
-    | Decrement
-    | InitialCountLoaded of Result<Counter, exn>
     | RootDirectoryChanged of UnixPath
     | CurrentPathChanged of UnixPath
     | GetDirContent of UnixPath
     | GotDirContent of FileSystemEntry array
     | GetFileContent of UnixPath
     | GotFileContent of FileContent
-    // | SelectedFileChanged of UnixPath
     | ErrorMsg of exn
 
-let initialCounter = fetchAs<Counter> "/api/init" (Decode.Auto.generateDecoder())
 let getDirResponse path = promise {
     let endpoint = path |> System.Uri.EscapeDataString |> sprintf "api/dir/%s"
     let! resp = Fetch.fetchAs<FileSystemEntry []> endpoint (Decode.Auto.generateDecoder()) []
@@ -56,8 +51,8 @@ let getFileResponse path = promise {
 
 let init () : Model * Cmd<Msg> =
     let initialModel = {
-        RootDirectory = "/Users/phoenix";
-        CurrentPath = "/Users/phoenix";
+        RootDirectory = "";
+        CurrentPath = "";
         SelectedFilePath = "";
         ServerState = Idle;
         ValidationError = None;
@@ -65,30 +60,11 @@ let init () : Model * Cmd<Msg> =
         FileContent = None;
     }
 
-    let loadCountCmd =
-        Cmd.ofPromise
-            initialCounter
-            []
-            (Ok >> InitialCountLoaded)
-            (Error >> InitialCountLoaded)
-    initialModel, loadCountCmd
+    initialModel, Cmd.none
 
 
-
-// The update function computes the next state of the application based on the current state and the incoming events/messages
-// It can also run side-effects (encoded as commands) like calling the server via Http.
-// these commands in turn, can dispatch messages to which the update function will react.
 let update (msg : Msg) (model : Model) : Model * Cmd<Msg> =
     match model, msg with
-    //| Some counter, Increment ->
-    //    let nextModel = { currentModel with Counter = Some { Value = counter.Value + 1 } }
-    //    nextModel, Cmd.none
-    //| Some counter, Decrement ->
-    //    let nextModel = { currentModel with Counter = Some { Value = counter.Value - 1 } }
-    //    nextModel, Cmd.none
-    //| _, InitialCountLoaded (Ok initialCount)->
-        //let nextModel = { currentModel with Counter = Some initialCount }
-        //nextModel, Cmd.none
     | _, RootDirectoryChanged changed ->
         { model with
             RootDirectory = changed
@@ -113,10 +89,6 @@ let update (msg : Msg) (model : Model) : Model * Cmd<Msg> =
             CurrentPath = match dirContent.[0] with | Directory dir -> dir.FullPath | _ -> ""
             ServerState = Idle
         }, Cmd.none
-    // | _, SelectedFileChanged newFilePath ->
-    //     { model with
-    //         SelectedFilePath = newFilePath
-    //     }, Cmd.none
     | _, GetFileContent path ->
         { model with
             ServerState = Loading
@@ -222,7 +194,9 @@ let view (model : Model) (dispatch : Msg -> unit) =
                                       viewDirectoryContent content ( model.RootDirectory = model.CurrentPath) onEntryClicked
                                     )
                                   ]
-                                  Column.column [  ] [
+                                  Column.column [
+                                    Column.Width (Screen.All, Column.Is6)
+                                  ] [
                                     FixedSizePanel model.SelectedFilePath (
                                       str (match model.FileContent with | Some content -> content | None -> "[Please select any file under 10kb]")
                                     )
