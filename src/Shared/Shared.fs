@@ -14,6 +14,11 @@ type DirectoryListResponse =
     | InvalidPath
     | DirResult of FileSystemEntry []
 
+type FileContent = string
+
+type FileContentResponse =
+    | NotExists
+    | FileResult of FileContent
 module Validation =
     // open System.Text.RegularExpressions
     let validatePath path =

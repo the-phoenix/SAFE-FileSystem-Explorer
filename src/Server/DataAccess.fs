@@ -16,13 +16,18 @@ let (|EndWithExtension|_|) (fileExt: string) (filePath: string) =
     else
         None
 
-let (|IsTextFile|_|) filePath =
+let (|IsSmallFile|_|) filePath =
+    if System.IO.FileInfo(filePath).Length < 10240L then // under 10 KBytes
+        Some()
+    else
+        None
+
+let (|IsReadableFile|_|) filePath =
     match filePath with
-    | EndWithExtension "txt"
-    | EndWithExtension "md"
-    | EndWithExtension "rtf"
-        -> Some()
-    | _ -> None
+    // | EndWithExtension "txt" | EndWithExtension "md" | EndWithExtension "rtf" | EndWithExtension "rtf"
+    //    -> match filePath with
+        | IsSmallFile -> Some() | _ -> None
+    // | _ -> None
 
 let ArrayConcat arr1 arr2 =
     Array.concat [arr1; arr2]
@@ -45,7 +50,7 @@ let private getFSItemInformationsInsideDirectory path =
             else
                 File {
                     Name = path |> Path.GetFileName
-                    ContentReadable = match path with | IsTextFile -> true | _ -> false
+                    ContentReadable = match path with | IsReadableFile -> true | _ -> false
                     FullPath = path
                 }
         )
@@ -58,4 +63,8 @@ let getEntriesInDirectory path : Task<DirectoryListResponse> = task {
     return contents
 }
 
-let a = System.IO.Path.Combine("one", "two")
+let getFileContent filePath : Task<FileContentResponse> = task {
+    let content = if File.Exists filePath then FileResult (File.ReadAllText filePath) else NotExists
+
+    return content
+}

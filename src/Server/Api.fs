@@ -18,10 +18,7 @@ let getInitial next (ctx: HttpContext) = task {
 }
 
 let getDirectoryList dirPath next (ctx:HttpContext) = task {
-    let affix = match ctx.GetQueryStringValue "affix" with | Ok t -> t | Error _ -> ""
     let! directoryContent = getEntriesInDirectory(dirPath)
-
-    (printfn "Hey query, %A") affix
 
     match directoryContent with
     | DirResult contents->
@@ -29,7 +26,17 @@ let getDirectoryList dirPath next (ctx:HttpContext) = task {
     | InvalidPath -> return! Response.badRequest ctx "Invalid path"
 }
 
+let getFileContent filePath next (ctx:HttpContext) = task {
+    let! fileContent = getFileContent(filePath)
+
+    match fileContent with
+    | FileResult content ->
+        return! json content next ctx
+    | NotExists -> return! Response.badRequest ctx "File doesn't exist"
+}
+
 let webApp = router {
     get "/api/init" getInitial
     getf "/api/dir/%s" getDirectoryList
+    getf "/api/file/%s" getFileContent
 }

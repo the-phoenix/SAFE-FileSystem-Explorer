@@ -22,6 +22,8 @@ type Model = {
     ValidationError : string option
     ServerState : ServerState
     DirectoryContent : FileSystemEntry array option
+    SelectedFilePath: UnixPath
+    FileContent: FileContent option
 }
 
 type Msg =
@@ -32,23 +34,35 @@ type Msg =
     | CurrentPathChanged of UnixPath
     | GetDirContent of UnixPath
     | GotDirContent of FileSystemEntry array
+    | GetFileContent of UnixPath
+    | GotFileContent of FileContent
+    // | SelectedFileChanged of UnixPath
     | ErrorMsg of exn
 
 let initialCounter = fetchAs<Counter> "/api/init" (Decode.Auto.generateDecoder())
-let getResponse path = promise {
+let getDirResponse path = promise {
     let endpoint = path |> System.Uri.EscapeDataString |> sprintf "api/dir/%s"
     let! resp = Fetch.fetchAs<FileSystemEntry []> endpoint (Decode.Auto.generateDecoder()) []
 
     return resp
 }
 
+let getFileResponse path = promise {
+    let endpoint = path |> System.Uri.EscapeDataString |> sprintf "api/file/%s"
+    let! resp = Fetch.fetch endpoint [] |> Promise.bind (fun res -> res.text())
+
+    return resp
+}
+
 let init () : Model * Cmd<Msg> =
     let initialModel = {
-        RootDirectory = "";
-        CurrentPath = "";
+        RootDirectory = "/Users/phoenix";
+        CurrentPath = "/Users/phoenix";
+        SelectedFilePath = "";
         ServerState = Idle;
         ValidationError = None;
         DirectoryContent = None;
+        FileContent = None;
     }
 
     let loadCountCmd =
@@ -91,12 +105,27 @@ let update (msg : Msg) (model : Model) : Model * Cmd<Msg> =
         { model with
             ServerState = Loading
             DirectoryContent = None
-        }, Cmd.ofPromise getResponse path GotDirContent ErrorMsg
+        }, Cmd.ofPromise getDirResponse path GotDirContent ErrorMsg
     | _, GotDirContent dirContent ->
         { model with
             ValidationError = None
             DirectoryContent = Some dirContent.[1..]
             CurrentPath = match dirContent.[0] with | Directory dir -> dir.FullPath | _ -> ""
+            ServerState = Idle
+        }, Cmd.none
+    // | _, SelectedFileChanged newFilePath ->
+    //     { model with
+    //         SelectedFilePath = newFilePath
+    //     }, Cmd.none
+    | _, GetFileContent path ->
+        { model with
+            ServerState = Loading
+            SelectedFilePath = path
+            FileContent = None
+        }, Cmd.ofPromise getFileResponse path GotFileContent ErrorMsg
+    | _, GotFileContent fileContent ->
+        { model with
+            FileContent = Some fileContent
             ServerState = Idle
         }, Cmd.none
     | _, ErrorMsg e -> { model with ServerState = ServerError e.Message }, Cmd.none
@@ -108,8 +137,8 @@ let view (model : Model) (dispatch : Msg -> unit) =
         | Directory dir ->
             dispatch (CurrentPathChanged dir.FullPath)
             dispatch (GetDirContent dir.FullPath)
-        | File file -> ()
-        // ignore
+        | File file ->
+            dispatch (GetFileContent file.FullPath)
 
     div []
         [ Navbar.navbar [ Navbar.Color IsPrimary ]
@@ -168,14 +197,7 @@ let view (model : Model) (dispatch : Msg -> unit) =
                                           Button.OnClick (fun _ -> model.RootDirectory |> GetDirContent |> dispatch)
                                           Button.Disabled (model.ValidationError.IsSome)
                                           Button.IsLoading (model.ServerState = ServerState.Loading) ]
-                                        [ str "Submit" ] ]
-                                Level.item [] [
-                                    Button.button
-                                        [ Button.Color IsPrimary
-                                          //Button.OnClick (fun _ -> dispatch ClearResult)
-                                          //Button.Disabled model.Report.IsNone
-                                        ]
-                                        [ str "Clear Result" ] ] ] ]
+                                        [ str "Submit" ] ] ] ]
 
                     ]
                 match model with
@@ -193,13 +215,17 @@ let view (model : Model) (dispatch : Msg -> unit) =
 
                         yield  Content.content [ Content.CustomClass "dirview-container"] [
                             Columns.columns []
-                                [ Column.column [ Column.Width (Screen.WideScreen, Column.Is6)] [
+                                [ Column.column [
+                                    Column.Width (Screen.All, Column.Is6)
+                                  ] [
                                     FixedSizePanel model.CurrentPath (
                                       viewDirectoryContent content ( model.RootDirectory = model.CurrentPath) onEntryClicked
                                     )
                                   ]
-                                  Column.column [] [
-                                    FixedSizePanel "Hey There" (str "I am the content")
+                                  Column.column [  ] [
+                                    FixedSizePanel model.SelectedFilePath (
+                                      str (match model.FileContent with | Some content -> content | None -> "[Please select any file under 10kb]")
+                                    )
                                   ]
                                 ]
                         ]

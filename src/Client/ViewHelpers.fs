@@ -62,11 +62,11 @@ let viewDirectoryContent (dirContent: FileSystemEntry array) isRoot onClick =
         |> Array.map (showFSEntry onClick)
     )
 
-let FixedSizePanel head content =
+let FixedSizePanel (head: string) content =
     Field.div [ Field.CustomClass "fileview"] [
         Message.message [ Message.Size IsSmall ] [
             Message.header [] [
-                str head
+                str (if head.Trim() <> "" then head else "[File Content Viewer]" )
             ]
             Message.body [] [
                 Field.div [ Field.CustomClass "inner"] [
