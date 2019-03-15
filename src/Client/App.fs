@@ -190,12 +190,16 @@ let view (model : Model) (dispatch : Msg -> unit) =
                                 ]
                             ]
                     | { DirectoryContent = Some content } ->
+
                         yield  Content.content [ Content.CustomClass "dirview-container"] [
                             Columns.columns []
                                 [ Column.column [ Column.Width (Screen.WideScreen, Column.Is6)] [
-                                    viewDirectoryContent content ( model.RootDirectory = model.CurrentPath) onEntryClicked ]
+                                    FixedSizePanel model.CurrentPath (
+                                      viewDirectoryContent content ( model.RootDirectory = model.CurrentPath) onEntryClicked
+                                    )
+                                  ]
                                   Column.column [] [
-                                    viewFileContent
+                                    FixedSizePanel "Hey There" (str "I am the content")
                                   ]
                                 ]
                         ]

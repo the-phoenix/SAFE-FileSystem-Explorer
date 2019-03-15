@@ -56,22 +56,22 @@ let showFSEntry onClick fsEntry  =
     )
 
 let viewDirectoryContent (dirContent: FileSystemEntry array) isRoot onClick =
-    Field.div [ Field.CustomClass "dirview"] [
-        Fa.ul [] (
-            dirContent
-            |> Array.filter (function | Directory { Name = ".." } -> false | _ -> true )
-            |> Array.map (showFSEntry onClick)
-        )
-    ]
+    Fa.ul [] (
+        dirContent
+        |> Array.filter (function | Directory { Name = ".." } -> false | _ -> true )
+        |> Array.map (showFSEntry onClick)
+    )
 
-let viewFileContent =
+let FixedSizePanel head content =
     Field.div [ Field.CustomClass "fileview"] [
         Message.message [ Message.Size IsSmall ] [
             Message.header [] [
-                str "Hey"
+                str head
             ]
             Message.body [] [
-                str "Hey Again"
+                Field.div [ Field.CustomClass "inner"] [
+                    content
+                ]
             ]
         ]
     ]

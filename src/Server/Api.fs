@@ -9,6 +9,7 @@ open Shared
 open Saturn
 open Giraffe
 open Microsoft.AspNetCore.Http
+open Saturn.ControllerHelpers
 // open Shared
 
 let getInitial next (ctx: HttpContext) = task {
@@ -17,7 +18,10 @@ let getInitial next (ctx: HttpContext) = task {
 }
 
 let getDirectoryList dirPath next (ctx:HttpContext) = task {
+    let affix = match ctx.GetQueryStringValue "affix" with | Ok t -> t | Error _ -> ""
     let! directoryContent = getEntriesInDirectory(dirPath)
+
+    (printfn "Hey query, %A") affix
 
     match directoryContent with
     | DirResult contents->
